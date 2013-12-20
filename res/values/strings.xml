@@ -1,0 +1,9 @@
+<resources>
+
+    <string name="app_name" >Get Image Info</string>
+    <string name="empty_string"></string>
+    <string name="touchpad_touched">Processing Image</string>
+
+    <string name="glass_voice_trigger">what is that</string>
+    <string name="glass_voice_prompt">what else is that</string>
+</resources>
