@@ -22,6 +22,7 @@ import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.view.View;
 import android.view.KeyEvent;
+import android.view.WindowManager;
 import android.widget.RemoteViews;
 
 import com.confused.glass.whatisthat.GlassSnapshotActivity;
@@ -169,7 +170,9 @@ public class WhatIsThatActivity extends Activity {
     // Even though the text-to-speech engine is only used in response to a menu action, we
     // initialize it when the application starts so that we avoid delays that could occur
     // if we waited until it was needed to start it up.
-    tlm = TimelineManager.from(_context);
+    tlm = TimelineManager.from(_context);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    
+    
     
     _speech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
       @Override
@@ -181,6 +184,7 @@ public class WhatIsThatActivity extends Activity {
 
     _card = new Card(_context);
     _card.setFootnote("Processing Image");
+    
     _cardView = _card.toView();
     _cardView.setKeepScreenOn(true);
     setContentView(_cardView);
@@ -265,7 +269,8 @@ public class WhatIsThatActivity extends Activity {
 		    		_card.addImage( Uri.fromFile(f));
 		    		_card.setFootnote("processing image");
 		    		_cardView.invalidate();
-		    		_card.toView();
+		    		
+		    		_cardView = _card.toView();
 		    		setContentView(_cardView);
 		    		
 			   }
