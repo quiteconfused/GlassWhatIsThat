@@ -1,35 +1,41 @@
 package com.confused.glass.whatisthat;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.StringTokenizer;
 
+import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
+import org.opencv.core.Range;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.highgui.Highgui;
+import org.opencv.imgproc.Imgproc;
+
 import android.app.Activity;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.view.View;
 import android.view.KeyEvent;
 import android.view.WindowManager;
-import android.widget.RemoteViews;
-
 import com.confused.glass.whatisthat.GlassSnapshotActivity;
 import com.confused.instarename.post.MultipartPost;
 import com.confused.instarename.post.PostParameter;
 import com.google.android.glass.app.Card;
-import com.google.android.glass.timeline.LiveCard;
 import com.google.android.glass.timeline.TimelineManager;
 
 /**
@@ -47,13 +53,11 @@ public class WhatIsThatActivity extends Activity {
   
   private static final String TAG = WhatIsThatActivity.class.getSimpleName();
   private static final String IMAGE_FILE_NAME = Environment.getExternalStorageDirectory().getPath()+ "/ImageTest.jpg";
-
+  private static final String IMAGE_FILE_NAME3 = Environment.getExternalStorageDirectory().getPath()+ "/subimage-";   
+  private static final String TAIL = ".jpg";
   private boolean picTaken = false; // flag to indicate if we just returned from the picture taking intent
   protected boolean mbActive;
 
-  final Handler myHandler = new Handler(); // handles looking for the returned image file
-  
-  @SuppressWarnings("null")
   public static void updateResultsInUi(Context context, String results, File image){
 	  
 	  Card card = new Card(context);
@@ -189,9 +193,11 @@ public class WhatIsThatActivity extends Activity {
     _cardView.setKeepScreenOn(true);
     setContentView(_cardView);
 
-    // An alternative way to layout the UX
-    //setContentView(R.layout.layout_helloworld);
-    //_statusTextView = (TextView)findViewById(R.id.status);
+    if (!OpenCVLoader.initDebug()) {
+    	
+    	finish();
+        // Handle initialization error
+    }
     
 	if (!picTaken) {
 		Intent intent = new Intent(this, GlassSnapshotActivity.class);
@@ -231,6 +237,7 @@ public class WhatIsThatActivity extends Activity {
       
       return true;
     default:
+      finish();
       return super.onKeyDown(keyCode, event);
     }
   }
@@ -264,7 +271,7 @@ public class WhatIsThatActivity extends Activity {
 			   if (f.exists()) {
 				   Log.v(TAG,"image file from camera was found");
 		    	    
-		    	    Thread t = performOnBackgroundThreadSingleFile(_context, f);
+		    	    performOnBackgroundThreadSingleFile(_context, f);
 		    		_card.setImageLayout(Card.ImageLayout.FULL);
 		    		_card.addImage( Uri.fromFile(f));
 		    		_card.setFootnote("processing image");
@@ -273,6 +280,76 @@ public class WhatIsThatActivity extends Activity {
 		    		_cardView = _card.toView();
 		    		setContentView(_cardView);
 		    		
+		    		Mat m = Highgui.imread(f.getAbsolutePath());
+		    		Mat edges = new Mat();
+		    		Mat dst_edges = new Mat();
+		            Mat lines = new Mat();
+		            Mat hierarchy = new Mat();
+		            
+		            Point a = new Point(0, 0);
+		            
+		            List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		            
+		            List<MatOfPoint> newcontours = new ArrayList<MatOfPoint>();
+		            List<Rect> rects = new ArrayList<Rect>();
+		            List<Point> center = new ArrayList<Point>();
+		            List<Integer> radius = new ArrayList<Integer>();
+		            
+		            Size s = new Size(3,3);
+		            Imgproc.cvtColor(m, edges, Imgproc.COLOR_BGR2GRAY);
+		            Imgproc.blur(edges, dst_edges, s);
+		            Imgproc.threshold(dst_edges, lines,  100,  255,  Imgproc.THRESH_BINARY );
+		            Imgproc.findContours( lines, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE, a );
+		            
+		            for(int i=0;i<contours.size();i++){
+		                MatOfPoint2f mMOP2f1 = new MatOfPoint2f();
+		                MatOfPoint2f mMOP2f2 = new MatOfPoint2f();
+		                MatOfPoint rectpoint = new MatOfPoint();
+		                float[] r = new float[] { 347.0f };
+		                contours.get(i).convertTo(mMOP2f1, CvType.CV_32FC2);
+
+		                Imgproc.approxPolyDP(mMOP2f1, mMOP2f2, (double)3, true); 
+		                mMOP2f2.convertTo(rectpoint, CvType.CV_32S);
+		                newcontours.add(rectpoint);
+		                rects.add(Imgproc.boundingRect(rectpoint));
+		                
+		                Point ccenter = new Point();
+		                Imgproc.minEnclosingCircle(mMOP2f2, ccenter, r);
+		                radius.add((int)r[0]);
+		                center.add(ccenter);
+		                
+		            }
+		            
+		            for( int i = 0; i< contours.size(); i++ ){ 
+		            /*
+		              int minimum = 0;
+		              int maximum = 255;
+		              int r =  minimum + (int)(Math.random()*maximum); 
+		              int b =  minimum + (int)(Math.random()*maximum); 
+		              int g =  minimum + (int)(Math.random()*maximum); 
+		              Scalar color = new Scalar( r, b, g );
+		              Imgproc.drawContours(m, newcontours, i, color);
+		              Core.rectangle(m, rects.get(i).tl(), rects.get(i).br(), color, 3);
+		              Core.circle( m, center.get(i), radius.get(i).intValue(), color, 3);
+		            */
+		            	Mat temp = m.submat(rects.get(i));
+			            Highgui.imwrite(IMAGE_FILE_NAME3 + i + TAIL, temp);
+			            
+			            File fss = new File(IMAGE_FILE_NAME3 + i + TAIL);
+			            
+			            performOnBackgroundThreadSingleFile(_context, fss);
+		            	
+		            	
+		            	
+		            }
+		           /*
+		            Highgui.imwrite(IMAGE_FILE_NAME3, m);
+		            
+		            File fss = new File(IMAGE_FILE_NAME3);
+		            
+		            performOnBackgroundThreadSingleFile(_context, fss);
+		            */
+		            
 			   }
 	      }
 	      else {
