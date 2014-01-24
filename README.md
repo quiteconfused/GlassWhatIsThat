@@ -9,7 +9,7 @@ Best bet to get a result is to hold up a DVD / Book infront of the Glass at arms
 
 
 
-*Note* In order to compile this, it requires OpenCV Library - 2.4.8 and it needs to be linked to the project in the project.properties with a reference like :
+*Note* In order to compile this, it requires to be compiled with OpenCV and it needs to be linked to the project in the project.properties with a reference like :
 
 android.library.reference.1=../OpenCV-2.4.8-android-sdk/sdk/java
 
