@@ -53,6 +53,7 @@ public class WhatIsThatActivity extends Activity {
   
   private static final String TAG = WhatIsThatActivity.class.getSimpleName();
   private static final String IMAGE_FILE_NAME = Environment.getExternalStorageDirectory().getPath()+ "/ImageTest.jpg";
+  private static final String IMAGE_FILE_NAME2 = Environment.getExternalStorageDirectory().getPath()+ "/SegmentedImageTest.jpg";
   private static final String IMAGE_FILE_NAME3 = Environment.getExternalStorageDirectory().getPath()+ "/subimage-";   
   private static final String TAIL = ".jpg";
   private boolean picTaken = false; // flag to indicate if we just returned from the picture taking intent
@@ -320,35 +321,38 @@ public class WhatIsThatActivity extends Activity {
 		                
 		            }
 		            
+		            Mat segmented = m.clone();
+		            
 		            for( int i = 0; i< contours.size(); i++ ){ 
-		            /*
-		              int minimum = 0;
-		              int maximum = 255;
-		              int r =  minimum + (int)(Math.random()*maximum); 
-		              int b =  minimum + (int)(Math.random()*maximum); 
-		              int g =  minimum + (int)(Math.random()*maximum); 
-		              Scalar color = new Scalar( r, b, g );
-		              Imgproc.drawContours(m, newcontours, i, color);
-		              Core.rectangle(m, rects.get(i).tl(), rects.get(i).br(), color, 3);
-		              Core.circle( m, center.get(i), radius.get(i).intValue(), color, 3);
-		            */
-		            	Mat temp = m.submat(rects.get(i));
-			            Highgui.imwrite(IMAGE_FILE_NAME3 + i + TAIL, temp);
-			            
-			            File fss = new File(IMAGE_FILE_NAME3 + i + TAIL);
-			            
-			            performOnBackgroundThreadSingleFile(_context, fss);
-		            	
+		            
+						int minimum = 0;
+						int maximum = 255;
+						int r =  minimum + (int)(Math.random()*maximum); 
+						int b =  minimum + (int)(Math.random()*maximum); 
+						int g =  minimum + (int)(Math.random()*maximum); 
+						Scalar color = new Scalar( r, b, g );
+						Imgproc.drawContours(segmented, newcontours, i, color);
+						Core.rectangle(segmented, rects.get(i).tl(), rects.get(i).br(), color, 3);
+						Core.circle( segmented, center.get(i), radius.get(i).intValue(), color, 3);
+		            
+						if(radius.get(i).intValue() > 40){
+							Mat temp = m.submat(rects.get(i));
+						    Highgui.imwrite(IMAGE_FILE_NAME3 + i + TAIL, temp);
+						    
+						    File fss = new File(IMAGE_FILE_NAME3 + i + TAIL);
+						    
+						    performOnBackgroundThreadSingleFile(_context, fss);
+						}
 		            	
 		            	
 		            }
-		           /*
-		            Highgui.imwrite(IMAGE_FILE_NAME3, m);
+		           
+		            Highgui.imwrite(IMAGE_FILE_NAME2, segmented);
 		            
-		            File fss = new File(IMAGE_FILE_NAME3);
+		            File fss = new File(IMAGE_FILE_NAME2);
 		            
 		            performOnBackgroundThreadSingleFile(_context, fss);
-		            */
+		            
 		            
 			   }
 	      }
